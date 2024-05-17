@@ -2,7 +2,9 @@ import { RegisterUserDto } from "@/utils/dtos";
 import { registerSchema } from "@/utils/validationSchemas";
 import { prisma } from "@/utils/db";
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from 'bcryptjs'
+import bcrypt from 'bcryptjs';
+import { generateJWT } from "@/utils/generatToken";
+import { JWTPlyload } from "@/utils/types";
 
 /**
  * @method POST 
@@ -10,8 +12,6 @@ import bcrypt from 'bcryptjs'
  * @desc Create New User [(Register)]
  * @access public 
  */
-//npm i bcryptjs
-//npm i -D @types/bcryptjs
 
 export async function POST(request: NextRequest) {
     try {
@@ -26,16 +26,27 @@ export async function POST(request: NextRequest) {
         }
 
         const salt = await bcrypt.genSalt(10);
-        const hashPassword = await bcrypt.hash(body.password,salt);
+        const hashPassword = await bcrypt.hash(body.password, salt);
         const newuser = await prisma.user.create({
             data: {
                 username: body.username,
                 email: body.email,
                 password: hashPassword,
+            },
+            select: {
+                username: true,
+                id: true,
+                isAdmin: true
             }
-        })
+        });
+        const jwtPlyload: JWTPlyload = {
+            id: newuser.id,
+            username: newuser.username,
+            isAdmin: newuser.isAdmin,
+        }   
+        const token = generateJWT(jwtPlyload);
 
-        return NextResponse.json(newuser, { status: 201 })
+        return NextResponse.json({...newuser , token}, { status: 201 })
 
     } catch (error) {
         return NextResponse.json({ message: 'internal server error' }, { status: 500 })

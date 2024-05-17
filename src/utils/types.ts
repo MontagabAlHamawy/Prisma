@@ -5,3 +5,9 @@ export type Article = {
     body: string;
     time: string;
 }
+
+export type JWTPlyload = {
+    id: number;
+    isAdmin: boolean;
+    username: string;
+}
